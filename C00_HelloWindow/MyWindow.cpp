@@ -11,7 +11,7 @@ void MyWindow::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAda
     com_ptr<IDXGIAdapter1> adapter;
     com_ptr<IDXGIFactory6> factory6;
 
-    // factory6°¡ °¡´ÉÇÏ´Ù¸é 
+    // factory6ê°€ ê°€ëŠ¥í•˜ë‹¤ë©´ 
     if (SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
     {
         DXGI_GPU_PREFERENCE preference = requestHighPerformanceAdapter ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED;
@@ -23,17 +23,17 @@ void MyWindow::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAda
             DXGI_ADAPTER_DESC1 desc;
             adapter->GetDesc1(&desc);
 
-            // software ·»´õ·¯ÀÎ °æ¿ì ¼±ÅÃÇÏÁö ¾Ê´Â´Ù
+            // software ë Œë”ëŸ¬ì¸ ê²½ìš° ì„ íƒí•˜ì§€ ì•ŠëŠ”ë‹¤
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
 
-            // device¸¦ ¸¸µå´Â °ÍÀÌ ¾Æ´Ï¶ó, ±×³É Support °¡´ÉÇÑÁö È®ÀÎ¸¸ ÇÑ´Ù
+            // deviceë¥¼ ë§Œë“œëŠ” ê²ƒì´ ì•„ë‹ˆë¼, ê·¸ëƒ¥ Support ê°€ëŠ¥í•œì§€ í™•ì¸ë§Œ í•œë‹¤
             if (SUCCEEDED(D3D12CreateDevice(adapter.get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 break;
         }
     }
 
-    // adapter¸¦ ¾ÆÁ÷ ¸ø±¸Çß´Ù¸é ÀüÅëÀûÀÎ ¹æ½ÄÀ¸·Î ±¸ÇÑ´Ù
+    // adapterë¥¼ ì•„ì§ ëª»êµ¬í–ˆë‹¤ë©´ ì „í†µì ì¸ ë°©ì‹ìœ¼ë¡œ êµ¬í•œë‹¤
     if (!adapter.get())
     {
         for(UINT adapterIndex = 0; ; ++adapterIndex)
@@ -47,7 +47,7 @@ void MyWindow::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAda
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
 
-            // device¸¦ ¸¸µå´Â °ÍÀÌ ¾Æ´Ï¶ó, ±×³É Support °¡´ÉÇÑÁö È®ÀÎ¸¸ ÇÑ´Ù
+            // deviceë¥¼ ë§Œë“œëŠ” ê²ƒì´ ì•„ë‹ˆë¼, ê·¸ëƒ¥ Support ê°€ëŠ¥í•œì§€ í™•ì¸ë§Œ í•œë‹¤
             if (SUCCEEDED(D3D12CreateDevice(adapter.get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
                 break;
         }
@@ -60,7 +60,7 @@ bool MyWindow::LoadPipeline(HWND hWnd)
 {
     UINT dxgiFactoryFlags = 0;
 
-    // 1. µğ¹ö±× ºôµåÀÏ¶§ DebugLayer¸¦ È°¼ºÈ­ÇÑ´Ù
+    // 1. ë””ë²„ê·¸ ë¹Œë“œì¼ë•Œ DebugLayerë¥¼ í™œì„±í™”í•œë‹¤
 #if defined(_DEBUG)
     // Enable the debug layer (requires the Graphics Tools "optional feature").
     // NOTE: Enabling the debug layer after device creation will invalidate the active device.
@@ -76,28 +76,28 @@ bool MyWindow::LoadPipeline(HWND hWnd)
     }
 #endif
 
-    // 2. factory¸¸µé±â
+    // 2. factoryë§Œë“¤ê¸°
     com_ptr<IDXGIFactory4> factory;
     if (FAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory))))
         return false;
 
-    // 3. hardware adapter¸¸µé±â
+    // 3. hardware adapterë§Œë“¤ê¸°
     com_ptr<IDXGIAdapter1> hardwareAdapter;
     GetHardwareAdapter(factory.get(), hardwareAdapter.put());
     if (!hardwareAdapter) return false;
 
-    // 4. device ¸¸µé±â
+    // 4. device ë§Œë“¤ê¸°
     if (FAILED(D3D12CreateDevice(hardwareAdapter.get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device))))
         return false;
 
-    // 5. CommandQueue¸¸µé±â SwapchainÀ» À§ÇØ¼­ ÇÏ³ª ¸¸µé¾î¾ß ÇÑ´Ù
+    // 5. CommandQueueë§Œë“¤ê¸° Swapchainì„ ìœ„í•´ì„œ í•˜ë‚˜ ë§Œë“¤ì–´ì•¼ í•œë‹¤
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     if (FAILED(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&commandQueue))))
         return false;
 
-    // 6. swap chain¸¸µé±â, À©µµ¿ì ¿¬°áÇÏ±â
+    // 6. swap chainë§Œë“¤ê¸°, ìœˆë„ìš° ì—°ê²°í•˜ê¸°
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
     swapChainDesc.BufferCount = FrameCount;
     swapChainDesc.Width = 1280;
@@ -120,7 +120,7 @@ bool MyWindow::LoadPipeline(HWND hWnd)
 
     frameIndex = swapChain->GetCurrentBackBufferIndex();
 
-    // 7. rtv¿ë descriptor heap¸¸µé±â
+    // 7. rtvìš© descriptor heapë§Œë“¤ê¸°
     // Describe and create a render target view (RTV) descriptor heap.
     D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
     rtvHeapDesc.NumDescriptors = FrameCount;
@@ -131,7 +131,7 @@ bool MyWindow::LoadPipeline(HWND hWnd)
 
     rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-    // 8. frame ¸®¼Ò½º ¸¸µé±â    
+    // 8. frame ë¦¬ì†ŒìŠ¤ ë§Œë“¤ê¸°    
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
     // Create a RTV for each frame.
@@ -140,7 +140,7 @@ bool MyWindow::LoadPipeline(HWND hWnd)
         if (FAILED(swapChain->GetBuffer(n, IID_PPV_ARGS(&renderTargets[n]))))
             return false;
 
-        // ·»´õÅ¸°Ùºä¸¦ ¸¸µç´Ù
+        // ë Œë”íƒ€ê²Ÿë·°ë¥¼ ë§Œë“ ë‹¤
         device->CreateRenderTargetView(renderTargets[n].get(), nullptr, rtvHandle);
 
         rtvHandle.Offset(1, rtvDescriptorSize);
@@ -165,7 +165,7 @@ bool MyWindow::LoadAssets()
 
     // Create synchronization objects.
     
-    // 2. fence »ı¼º
+    // 2. fence ìƒì„±
     if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
         return false;
 
@@ -173,7 +173,7 @@ bool MyWindow::LoadAssets()
 
     // Create an event handle to use for frame synchronization.
 
-    // 3. event ¸¸µé±â
+    // 3. event ë§Œë“¤ê¸°
     fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     if (fenceEvent == nullptr)
     {
@@ -190,8 +190,8 @@ bool MyWindow::PopulateCommandList()
     // command lists have finished execution on the GPU; apps should use 
     // fences to determine GPU execution progress.
 
-    // Ä¿¸Çµå ¸®½ºÆ® ÇÒ´çÀÚ´Â ¿¬°üµÈ Ä¿¸Çµå ¸®½ºÆ®µéÀÌ GPU¿¡¼­ ¸ğµÎ ¼öÇàÀ» ¸¶ÃÄ¾ß¸¸ ¸®¼ÂÇÒ¼ö ÀÖ´Ù.
-    // ¾ÛÀº ¹İµå½Ã Ææ½º¸¦ »ç¿ëÇØ¼­ GPU ¼öÇà ¿©ºÎ¸¦ ¾Ë¾Æ³»¾ß ÇÑ´Ù
+    // ì»¤ë§¨ë“œ ë¦¬ìŠ¤íŠ¸ í• ë‹¹ìëŠ” ì—°ê´€ëœ ì»¤ë§¨ë“œ ë¦¬ìŠ¤íŠ¸ë“¤ì´ GPUì—ì„œ ëª¨ë‘ ìˆ˜í–‰ì„ ë§ˆì³ì•¼ë§Œ ë¦¬ì…‹í• ìˆ˜ ìˆë‹¤.
+    // ì•±ì€ ë°˜ë“œì‹œ íœìŠ¤ë¥¼ ì‚¬ìš©í•´ì„œ GPU ìˆ˜í–‰ ì—¬ë¶€ë¥¼ ì•Œì•„ë‚´ì•¼ í•œë‹¤
     if (FAILED(commandAllocator->Reset()))
         return false;
 
@@ -223,26 +223,26 @@ bool MyWindow::PopulateCommandList()
 
 bool MyWindow::WaitForPreviousFrame()
 {
-    // WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.     <- ±â´Ù¸®´Â°Ç ÁÁÀº ¹æ½ÄÀÌ ¾Æ´Ï´Ù. ±×³É °£´ÜÇÏ°Ô ÇÏ·Á°í ÀÌ·¸°Ô Çß´Ù
-    // This is code implemented as such for simplicity. The D3D12HelloFrameBuffering <- D3D12HelloFrameBuffering¿¡¼­
+    // WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.     <- ê¸°ë‹¤ë¦¬ëŠ”ê±´ ì¢‹ì€ ë°©ì‹ì´ ì•„ë‹ˆë‹¤. ê·¸ëƒ¥ ê°„ë‹¨í•˜ê²Œ í•˜ë ¤ê³  ì´ë ‡ê²Œ í–ˆë‹¤
+    // This is code implemented as such for simplicity. The D3D12HelloFrameBuffering <- D3D12HelloFrameBufferingì—ì„œ
     // sample illustrates how to use fences for efficient resource usage and to
     // maximize GPU utilization.
 
     // Signal and increment the fence value.
     const UINT64 origFenceValue = fenceValue;
-    if (FAILED(commandQueue->Signal(fence.get(), origFenceValue))) // Ä¿¸ÇµåÅ¥¿¡ ½Ã±×³ÎÀ» ³Ö´Â´Ù. GPU°¡ ½ÇÇàÇÏ´Ù°¡ fence¸¦ Æ®¸®°ÅÇÑ´Ù
+    if (FAILED(commandQueue->Signal(fence.get(), origFenceValue))) // ì»¤ë§¨ë“œíì— ì‹œê·¸ë„ì„ ë„£ëŠ”ë‹¤. GPUê°€ ì‹¤í–‰í•˜ë‹¤ê°€ fenceë¥¼ íŠ¸ë¦¬ê±°í•œë‹¤
         return false;
 
     fenceValue++;
 
     // Wait until the previous frame is finished.
-    if (fence->GetCompletedValue() < origFenceValue) // ¸¸¾à origFenceValueº¸´Ù fence°¡ ³Ñ¾î¼¹´Ù¸é ±â´Ù¸®Áö ¾Ê´Â´Ù (ÀÌ¹Ì ³¡³µÀ¸´Ï±î)
+    if (fence->GetCompletedValue() < origFenceValue) // ë§Œì•½ origFenceValueë³´ë‹¤ fenceê°€ ë„˜ì–´ì„°ë‹¤ë©´ ê¸°ë‹¤ë¦¬ì§€ ì•ŠëŠ”ë‹¤ (ì´ë¯¸ ëë‚¬ìœ¼ë‹ˆê¹Œ)
     {
-        // ±×·³ ¿©±â À­ÁÙ°ú WaitForSingleObject CompletionÀÌ ÀÏ¾î³ª¸é ¾î¶»°Ô µÇ´Â°Ç°¡. »ó°ü¾ø³ªº¸´Ù
+        // ê·¸ëŸ¼ ì—¬ê¸° ìœ—ì¤„ê³¼ WaitForSingleObject Completionì´ ì¼ì–´ë‚˜ë©´ ì–´ë–»ê²Œ ë˜ëŠ”ê±´ê°€. ìƒê´€ì—†ë‚˜ë³´ë‹¤
         if (FAILED(fence->SetEventOnCompletion(origFenceValue, fenceEvent)))
             return false;
 
-        // fenceEvent¸¦ ±â´Ù¸°´Ù
+        // fenceEventë¥¼ ê¸°ë‹¤ë¦°ë‹¤
         WaitForSingleObject(fenceEvent, INFINITE);
     }
 

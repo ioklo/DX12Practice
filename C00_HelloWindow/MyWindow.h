@@ -15,10 +15,10 @@ class MyWindow
     winrt::com_ptr<ID3D12Resource> renderTargets[FrameCount];
     winrt::com_ptr<ID3D12CommandAllocator> commandAllocator;
 
-    // LoadAssets¿¡¼­ ¸¸µê
+    // LoadAssetsì—ì„œ ë§Œë“¦
     winrt::com_ptr<ID3D12GraphicsCommandList> commandList;
     winrt::com_ptr<ID3D12Fence> fence;
-    winrt::com_ptr<ID3D12PipelineState> pipelineState; // ÀÌ°É ÃÊ±âÈ­ÇÏÁö ¾Ê´Â´Ù.
+    winrt::com_ptr<ID3D12PipelineState> pipelineState; // ì´ê±¸ ì´ˆê¸°í™”í•˜ì§€ ì•ŠëŠ”ë‹¤.
 
     HANDLE fenceEvent;
 
