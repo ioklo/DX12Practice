@@ -5,6 +5,14 @@ VisualStudioVersion = 17.11.35431.28
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "C00_HelloWindow", "C00_HelloWindow\C00_HelloWindow.vcxproj", "{20F5E8FB-D9DC-4BC0-AB5C-F6BC7C4F560C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D4C00956-175C-464B-8CFF-1475C02FF339}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		vcpkg.json = vcpkg.json
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "C01_HelloTriangle", "C01_HelloTriangle\C01_HelloTriangle.vcxproj", "{CABAB639-B714-4695-AD73-281091795661}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +29,14 @@ Global
 		{20F5E8FB-D9DC-4BC0-AB5C-F6BC7C4F560C}.Release|x64.Build.0 = Release|x64
 		{20F5E8FB-D9DC-4BC0-AB5C-F6BC7C4F560C}.Release|x86.ActiveCfg = Release|Win32
 		{20F5E8FB-D9DC-4BC0-AB5C-F6BC7C4F560C}.Release|x86.Build.0 = Release|Win32
+		{CABAB639-B714-4695-AD73-281091795661}.Debug|x64.ActiveCfg = Debug|x64
+		{CABAB639-B714-4695-AD73-281091795661}.Debug|x64.Build.0 = Debug|x64
+		{CABAB639-B714-4695-AD73-281091795661}.Debug|x86.ActiveCfg = Debug|Win32
+		{CABAB639-B714-4695-AD73-281091795661}.Debug|x86.Build.0 = Debug|Win32
+		{CABAB639-B714-4695-AD73-281091795661}.Release|x64.ActiveCfg = Release|x64
+		{CABAB639-B714-4695-AD73-281091795661}.Release|x64.Build.0 = Release|x64
+		{CABAB639-B714-4695-AD73-281091795661}.Release|x86.ActiveCfg = Release|Win32
+		{CABAB639-B714-4695-AD73-281091795661}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
