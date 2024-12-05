@@ -1,8 +1,45 @@
 #include "MyWindow.h"
 #include <winrt/base.h>
-#include <directx/d3dx12.h>
+#include <filesystem>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
 
 using namespace winrt;
+using namespace std;
+using namespace std::filesystem;
+using namespace DirectX;
+
+struct Vertex
+{
+    XMFLOAT3 position;
+    XMFLOAT4 color;
+};
+
+path& GetBasePath()
+{
+    static optional<path> basePath;
+    if (basePath) return *basePath;
+
+    std::vector<wchar_t> buffer;
+    buffer.resize(MAX_PATH);
+    DWORD nSize = GetModuleFileName(nullptr, buffer.data(), (DWORD)buffer.size());
+    path modulePath = buffer.data();
+
+    basePath = modulePath.parent_path();
+    return *basePath;
+}
+
+std::wstring GetAppPath(const std::wstring& relPath)
+{
+    return GetBasePath() / relPath;
+}
+
+MyWindow::MyWindow()
+{
+    aspectRatio = 1280.0f / 720.0f;
+    viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, 1280.0f, 720.0f);
+    scissorRect = CD3DX12_RECT(0, 0, 1280, 720);
+}
 
 void MyWindow::GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter)
 {
@@ -154,6 +191,71 @@ bool MyWindow::LoadPipeline(HWND hWnd)
 
 bool MyWindow::LoadAssets()
 {
+    {
+        // root signature는 무엇인가
+        CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+        rootSignatureDesc.Init(/*numParameters*/ 0, /*pParameters*/ nullptr, /*numStaticSamplers*/ 0, /*pStaticSamplers*/ nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+        com_ptr<ID3DBlob> signature;
+        com_ptr<ID3DBlob> error;
+
+        // signature를 데이터로 serialize시키고
+        if (FAILED(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.put(), error.put())))
+            return false;
+
+        // serialize된 데이터를 rootSignature로 만든다
+        if (FAILED(device->CreateRootSignature(/*nodeMask*/0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootSignature))))
+            return false;
+    }
+
+    {
+        // 파이프라인 스테이트 생성
+        com_ptr<ID3DBlob> vertexShader;
+        com_ptr<ID3DBlob> pixelShader;
+
+#if defined(_DEBUG)
+        UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+        UINT compileFlags = 0;
+#endif
+        if (FAILED(D3DCompileFromFile(GetAppPath(L"shaders.hlsl").c_str(), /*pDefines*/ nullptr, /*pInclude*/ nullptr, "VSMain", "vs_5_0", compileFlags, 0, vertexShader.put(), /*ppErrorMsgs*/ nullptr)))
+            return false;
+
+        if (FAILED(D3DCompileFromFile(GetAppPath(L"shaders.hlsl").c_str(), /*pDefines*/ nullptr, /*pInclude*/ nullptr, "PSMain", "ps_5_0", compileFlags, 0, pixelShader.put(), /*ppErrorMsgs*/ nullptr)))
+            return false;
+
+        // input layout 알려주기
+        D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
+        {   
+            // SemanticName, SemanticIndex, Format, InputSlot, AlignedByteOffset, InputSlotClass, InstanceDataStepRate
+
+            // POSITION은 ByteOffset이 0
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+
+            // COLOR는 ByteOffset이 12
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        };
+
+        // Describe and create the graphics pipeline state object (PSO).
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+        psoDesc.pRootSignature = rootSignature.get();
+        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexShader.get());
+        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelShader.get());
+        psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+        psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        psoDesc.DepthStencilState.DepthEnable = FALSE;
+        psoDesc.DepthStencilState.StencilEnable = FALSE;
+        psoDesc.SampleMask = UINT_MAX;
+        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        psoDesc.NumRenderTargets = 1;
+        psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+        psoDesc.SampleDesc.Count = 1;
+
+        if (FAILED(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState))))
+            return false;
+    }
+
     // 1. Create the command list.
     if (FAILED(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.get(), nullptr, IID_PPV_ARGS(&commandList))))
         return false;
@@ -163,22 +265,64 @@ bool MyWindow::LoadAssets()
     if (FAILED(commandList->Close()))
         return false;
 
-    // Create synchronization objects.
-    
-    // 2. fence 생성
-    if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
-        return false;
-
-    fenceValue = 1;
-
-    // Create an event handle to use for frame synchronization.
-
-    // 3. event 만들기
-    fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    if (fenceEvent == nullptr)
+    // create vertex buffer
     {
-        if (FAILED(HRESULT_FROM_WIN32(GetLastError())))
+        Vertex triangleVertices[] =
+        {
+            {{ 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+            {{ 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+            {{ -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+        };
+
+        const UINT vertexBufferSize = sizeof(triangleVertices);
+
+        // Note: using upload heaps to transfer static data like vert buffers is not 
+        // recommended. Every time the GPU needs it, the upload heap will be marshalled 
+        // over. Please read up on Default Heap usage. An upload heap is used here for 
+        // code simplicity and because there are very few verts to actually transfer.
+        if (FAILED(device->CreateCommittedResource(
+            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+            D3D12_HEAP_FLAG_NONE,
+            &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(&vertexBuffer))))
             return false;
+
+        // Copy the triangle data to the vertex buffer.
+        UINT8* pVertexDataBegin;
+        CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+        if (FAILED(vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin))))
+            return false;
+
+        memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+        vertexBuffer->Unmap(0, nullptr);
+
+        // Initialize the vertex buffer view.
+        vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
+        vertexBufferView.StrideInBytes = sizeof(Vertex); // 하나씩 크기
+        vertexBufferView.SizeInBytes = vertexBufferSize; // 총 크기
+    }
+
+    // Create synchronization objects.
+    {
+        // 2. fence 생성
+        if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence))))
+            return false;
+
+        fenceValue = 1;
+
+        // Create an event handle to use for frame synchronization.
+
+        // 3. event 만들기
+        fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (fenceEvent == nullptr)
+        {
+            if (FAILED(HRESULT_FROM_WIN32(GetLastError())))
+                return false;
+        }
+
+        WaitForPreviousFrame();
     }
 
     return true;
@@ -201,15 +345,24 @@ bool MyWindow::PopulateCommandList()
     if (FAILED(commandList->Reset(commandAllocator.get(), pipelineState.get())))
         return false;
 
+    // Set necessary state.
+    commandList->SetGraphicsRootSignature(rootSignature.get());
+    commandList->RSSetViewports(1, &viewport);
+    commandList->RSSetScissorRects(1, &scissorRect);
+
     // Indicate that the back buffer will be used as a render target.
     auto transition0 = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     commandList->ResourceBarrier(1, &transition0);
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
+    commandList->OMSetRenderTargets(1, &rtvHandle, /*RTsSingleHandleToDescriptorRange*/ FALSE, /*pDepthStencilDescriptor*/ nullptr);
 
     // Record commands.
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+    commandList->DrawInstanced(3, 1, 0, 0);
 
     // Indicate that the back buffer will now be used to present.
     auto transition1 = CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

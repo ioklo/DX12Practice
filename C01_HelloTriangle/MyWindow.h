@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <winrt/base.h>
 #include <directx/d3d12.h>
+#include <directx/d3dx12.h>
 #include <dxgi1_6.h>
 
 class MyWindow
@@ -20,11 +21,22 @@ class MyWindow
     winrt::com_ptr<ID3D12Fence> fence;
     winrt::com_ptr<ID3D12PipelineState> pipelineState; // 이걸 초기화하지 않는다.
 
+    winrt::com_ptr<ID3D12RootSignature> rootSignature;
+    winrt::com_ptr<ID3D12Resource> vertexBuffer;
+    D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+
     HANDLE fenceEvent;
 
     UINT frameIndex;
     UINT rtvDescriptorSize;
     UINT fenceValue;
+
+    FLOAT aspectRatio;
+    CD3DX12_VIEWPORT viewport;
+    CD3DX12_RECT scissorRect;
+
+public:
+    MyWindow();
 
 private:
     void GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter = false);
